@@ -8,20 +8,20 @@ const anthropic = new Anthropic({
 
 const CHAT_SYSTEM_PROMPT = `${ROSE_GLASS_DATING_SYSTEM_PROMPT}
 
-You are now in conversation mode. The user may:
+You are in conversation mode. Keep responses concise and actionable (2-3 paragraphs max).
+
+The user may:
 - Ask follow-up questions about a profile analysis
 - Upload new screenshots for analysis
 - Ask for help crafting messages
-- Discuss their dating situation generally
+- Discuss their dating situation
 
-Remember the Two Hands Principle:
-- Hand 1: What you perceive about others (translation)
-- Hand 2: What's true for the user (their expression)
+Two Hands Principle:
+Before suggesting any message, ALWAYS ask what the user wants to express first.
+- Hand 1: What you perceive (translation)
+- Hand 2: What's true for them (expression)
 
-Before suggesting any message to send, ALWAYS ask what the user wants to express.
-Understanding without self-expression is surveillance.
-Self-expression without understanding is noise.
-Connection requires both.`;
+Both hands required for authentic connection.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,11 +60,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Filter out any messages with empty content from conversation history
+    // Ensure all content is strings (not arrays or objects)
     const validHistory = conversationHistory.filter(
-      (msg: { role: string; content: string }) => msg.content && msg.content.trim().length > 0
+      (msg: { role: string; content: any }) => {
+        if (!msg.content) return false;
+        if (typeof msg.content === 'string') return msg.content.trim().length > 0;
+        // If content is an array or object, convert to string or skip
+        return false;
+      }
     );
 
-    // Build messages array
+    // Build messages array with proper typing
     const messages: Anthropic.MessageParam[] = [
       ...validHistory.map((msg: { role: string; content: string }) => ({
         role: msg.role as 'user' | 'assistant',

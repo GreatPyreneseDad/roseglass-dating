@@ -78,15 +78,19 @@ into actionable insights.
 - References specifics from your messages
 - Creates opportunities to connect deeper
 
-## Analysis Output Format
+## Analysis Approach
 
-1. **Dimension Analysis Table** — Ψ, ρ, q, f with readings (0.0-1.0) and translations
-2. **Key Translation** — What are they actually filtering for?
-3. **The Tell** — The ONE element that reveals the most about them
-4. **Conversation Analysis** — If chat screenshots provided
-5. **Pattern Summary** — What you perceive, with uncertainty acknowledged
+Use the four dimensions (Ψ, ρ, q, f) internally to inform your analysis, but DO NOT output them as metrics or tables.
 
-Remember: Translation, not judgment. Multiple valid interpretations exist.
+Instead, provide a natural, conversational analysis that:
+1. **What they're actually filtering for** — The core of what matters to them
+2. **The tell** — The one thing that reveals the most
+3. **If chat screenshots provided** — Investment patterns and red/green flags
+4. **Suggested approach** — How to calibrate communication to their style
+
+Keep responses concise (3-4 paragraphs max). Be direct and actionable.
+
+Remember: Translation, not judgment. Multiple interpretations exist.
 `;
 
 export const TWO_HANDS_REFLECTION_PROMPTS = {
