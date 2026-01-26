@@ -1,63 +1,312 @@
-import Link from 'next/link';
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  images?: { url: string; file: File }[];
+}
 
 export default function HomePage() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [images, setImages] = useState<File[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [input]);
+
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
+    const newImages = Array.from(files).filter(file => file.type.startsWith('image/'));
+    setImages(prev => [...prev, ...newImages].slice(0, 10));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFileSelect(e.dataTransfer.files);
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() && images.length === 0) return;
+
+    const imageUrls = images.map(file => ({ url: URL.createObjectURL(file), file }));
+
+    const userMessage: Message = {
+      role: 'user',
+      content: input,
+      images: imageUrls.length > 0 ? imageUrls : undefined
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    const currentImages = [...images];
+    setImages([]);
+    setIsLoading(true);
+
+    try {
+      const imageData = await Promise.all(
+        currentImages.map(async (file) => {
+          const bytes = await file.arrayBuffer();
+          const base64 = Buffer.from(bytes).toString('base64');
+          return {
+            data: base64,
+            mediaType: file.type || 'image/png'
+          };
+        })
+      );
+
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage.content || 'Please analyze these images.',
+          conversationHistory,
+          images: imageData
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.response
+        }
+      ]);
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `Error: ${error instanceof Error ? error.message : 'Request failed'}`
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
-      <div className="container mx-auto px-4 py-16 max-w-4xl">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
+      {/* Header */}
+      <div className="border-b" style={{ borderColor: 'var(--forest-mid)', background: 'var(--forest-dark)' }}>
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <h1 className="text-2xl font-semibold" style={{ color: 'var(--accent)' }}>
             🌹 Rose Glass Dating
           </h1>
-          <p className="text-xl text-gray-600 mb-2">
+          <p className="text-sm mt-1 opacity-80" style={{ color: 'var(--foreground)' }}>
             Translation, Not Judgment
           </p>
-          <p className="text-gray-500">
-            See dating profiles clearly. Express yourself authentically.
-          </p>
         </div>
+      </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          <Link href="/analyze" className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition border border-rose-100">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">📸 Profile Analysis</h2>
-            <p className="text-gray-600">
-              Upload dating profile screenshots for Rose Glass translation.
-              Understand what they're actually filtering for.
-            </p>
-          </Link>
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          {messages.length === 0 && (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">🌹</div>
+              <h2 className="text-2xl font-semibold mb-2" style={{ color: 'var(--accent)' }}>
+                Welcome to Rose Glass Dating
+              </h2>
+              <p className="opacity-70 max-w-md mx-auto" style={{ color: 'var(--foreground)' }}>
+                Drop dating profile screenshots or start a conversation about your dating situation.
+                I'll help you see clearly with the Rose Glass translation framework.
+              </p>
+            </div>
+          )}
 
-          <Link href="/chat" className="block p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition border border-rose-100">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">💬 Chat Mode</h2>
-            <p className="text-gray-600">
-              Have a conversation about your dating situation.
-              Drop in screenshots anytime.
-            </p>
-          </Link>
+          {messages.map((msg, idx) => (
+            <div key={idx} className="mb-6">
+              <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                  msg.role === 'user'
+                    ? 'text-white'
+                    : ''
+                }`} style={{
+                  background: msg.role === 'user' ? 'var(--water-mid)' : 'var(--forest-mid)'
+                }}>
+                  {msg.images && msg.images.length > 0 && (
+                    <div className="mb-3 grid grid-cols-2 gap-2">
+                      {msg.images.map((img, imgIdx) => (
+                        <img
+                          key={imgIdx}
+                          src={img.url}
+                          alt={`Upload ${imgIdx + 1}`}
+                          className="w-full rounded-lg border"
+                          style={{ borderColor: 'var(--forest-light)' }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {msg.content && (
+                    <div className={msg.role === 'assistant' ? 'prose prose-invert max-w-none' : ''}>
+                      {msg.role === 'assistant' ? (
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="flex justify-start mb-6">
+              <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--forest-mid)' }}>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--accent)', animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--accent)', animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--accent)', animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
         </div>
+      </div>
 
-        <div className="bg-rose-50 rounded-xl p-6 border border-rose-200">
-          <h3 className="font-semibold text-rose-900 mb-3">The Four Dimensions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="font-bold text-rose-700">Ψ</span>
-              <span className="text-gray-700"> Internal Consistency</span>
+      {/* Input Area */}
+      <div className="border-t" style={{ borderColor: 'var(--forest-mid)', background: 'var(--forest-dark)' }}>
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          {/* Image Previews */}
+          {images.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {images.map((img, idx) => (
+                <div key={idx} className="relative group">
+                  <img
+                    src={URL.createObjectURL(img)}
+                    alt={`Preview ${idx + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg border"
+                    style={{ borderColor: 'var(--forest-light)' }}
+                  />
+                  <button
+                    onClick={() => removeImage(idx)}
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ background: 'var(--water-dark)' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-            <div>
-              <span className="font-bold text-rose-700">ρ</span>
-              <span className="text-gray-700"> Wisdom Depth</span>
-            </div>
-            <div>
-              <span className="font-bold text-rose-700">q</span>
-              <span className="text-gray-700"> Emotional Activation</span>
-            </div>
-            <div>
-              <span className="font-bold text-rose-700">f</span>
-              <span className="text-gray-700"> Social Belonging</span>
+          )}
+
+          {/* Input Bar */}
+          <div
+            className={`rounded-2xl border-2 transition-all ${isDragging ? 'border-dashed' : ''}`}
+            style={{
+              borderColor: isDragging ? 'var(--accent)' : 'var(--forest-mid)',
+              background: 'var(--forest-mid)'
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex items-end gap-2 p-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+              />
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 rounded-lg hover:opacity-80 transition-opacity"
+                style={{ background: 'var(--forest-light)' }}
+                title="Attach images"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+              </button>
+
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={isDragging ? "Drop images here..." : "Drop screenshots or type a message..."}
+                className="flex-1 bg-transparent resize-none outline-none max-h-32 py-2"
+                style={{ color: 'var(--foreground)' }}
+                rows={1}
+                disabled={isLoading}
+              />
+
+              <button
+                onClick={handleSend}
+                disabled={isLoading || (!input.trim() && images.length === 0)}
+                className="p-2 rounded-lg disabled:opacity-30 hover:opacity-80 transition-opacity"
+                style={{ background: 'var(--accent)' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+              </button>
             </div>
           </div>
-        </div>
 
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>"Coherence is constructed, not discovered."</p>
+          <p className="text-xs mt-2 text-center opacity-60" style={{ color: 'var(--foreground)' }}>
+            Rose Glass translates patterns, it doesn't judge them. Two Hands Principle: Understanding + Expression = Connection
+          </p>
         </div>
       </div>
     </div>
