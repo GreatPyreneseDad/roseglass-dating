@@ -94,6 +94,22 @@ export default function HomePage() {
         content: msg.content
       }));
 
+      // Log request details and check payload size
+      const totalImageSize = imageData.reduce((sum, img) => sum + img.data.length, 0);
+      const totalPayloadSizeMB = totalImageSize / (1024 * 1024);
+
+      console.log('Sending request with:', {
+        imageCount: imageData.length,
+        historyLength: conversationHistory.length,
+        messageLength: userMessage.content?.length || 0,
+        totalPayloadSizeMB: totalPayloadSizeMB.toFixed(2)
+      });
+
+      // Vercel has a 4.5MB serverless function payload limit
+      if (totalPayloadSizeMB > 4) {
+        throw new Error(`Total image size (${totalPayloadSizeMB.toFixed(1)}MB) exceeds limit. Please upload fewer or smaller images (max 4MB total).`);
+      }
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -105,8 +121,16 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(errorData.error || `Analysis failed: ${response.statusText}`);
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || response.statusText || 'Request failed';
+          console.error('API Error Response:', errorData);
+        } catch (e) {
+          errorMessage = response.statusText || `HTTP ${response.status}`;
+          console.error('Failed to parse error response:', e);
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -119,12 +143,15 @@ export default function HomePage() {
         }
       ]);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Full error details:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      console.error('Error message being displayed:', errorMessage);
+
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: `Error: ${error instanceof Error ? error.message : 'Request failed'}`
+          content: `**Error:** ${errorMessage}\n\nPlease try:\n- Using fewer images (1-2 at a time)\n- Ensuring images are under 5MB each\n- Refreshing and trying again`
         }
       ]);
     } finally {
