@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { ROSE_GLASS_DATING_SYSTEM_PROMPT } from '@/lib/rose-glass-dating';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.RoseDatingANthropic_API_KEY,
 });
 
 const CHAT_SYSTEM_PROMPT = `${ROSE_GLASS_DATING_SYSTEM_PROMPT}
