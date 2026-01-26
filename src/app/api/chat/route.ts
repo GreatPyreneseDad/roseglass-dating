@@ -25,6 +25,12 @@ Connection requires both.`;
 
 export async function POST(request: NextRequest) {
   try {
+    // Check API key
+    if (!process.env.RoseDatingANthropic_API_KEY) {
+      console.error('API key not found in environment variables');
+      return Response.json({ error: 'API configuration error: Missing API key' }, { status: 500 });
+    }
+
     const body = await request.json();
     const { message, conversationHistory = [], images = [] } = body;
 

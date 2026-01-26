@@ -105,7 +105,8 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Analysis failed: ${response.statusText}`);
       }
 
       const data = await response.json();
