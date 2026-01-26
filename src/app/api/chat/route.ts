@@ -41,8 +41,17 @@ export async function POST(request: NextRequest) {
     // Build content array
     const content: any[] = [];
 
-    // Add images if provided
+    // Add images if provided (with size validation)
     for (const img of images) {
+      // Check image size (base64 is ~4/3 the size of original, so 5MB limit = ~3.75MB base64)
+      const imageSizeMB = (img.data.length * 0.75) / (1024 * 1024);
+      if (imageSizeMB > 5) {
+        return Response.json(
+          { error: `Image too large (${imageSizeMB.toFixed(1)}MB). Maximum size is 5MB per image.` },
+          { status: 400 }
+        );
+      }
+
       content.push({
         type: 'image',
         source: {
@@ -79,9 +88,17 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content },
     ];
 
+    // Log request details for debugging
+    console.log('API Request:', {
+      imageCount: images.length,
+      messageLength: messageText?.length,
+      historyLength: validHistory.length,
+      contentBlocks: content.length
+    });
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
+      max_tokens: 3000, // Increased for multiple image analysis
       system: CHAT_SYSTEM_PROMPT,
       messages,
     });
@@ -99,8 +116,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Chat error:', error);
+
+    // Provide detailed error information
+    let errorMessage = 'Chat failed';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      console.error('Error name:', error.name);
+      console.error('Error stack:', error.stack);
+    }
+
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Chat failed' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
