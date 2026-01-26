@@ -53,14 +53,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Add text message
-    if (message) {
-      content.push({ type: 'text', text: message });
+    // Add text message - ensure there's always text when images are present
+    const messageText = message || (images.length > 0 ? 'Please analyze these images.' : '');
+    if (messageText) {
+      content.push({ type: 'text', text: messageText });
     }
+
+    // Filter out any messages with empty content from conversation history
+    const validHistory = conversationHistory.filter(
+      (msg: { role: string; content: string }) => msg.content && msg.content.trim().length > 0
+    );
 
     // Build messages array
     const messages: Anthropic.MessageParam[] = [
-      ...conversationHistory.map((msg: { role: string; content: string }) => ({
+      ...validHistory.map((msg: { role: string; content: string }) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
       })),
