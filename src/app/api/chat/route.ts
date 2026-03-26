@@ -23,19 +23,31 @@ Before suggesting any message, ALWAYS ask what the user wants to express first.
 
 Both hands required for authentic connection.`;
 
+// CORS headers for Chrome extension access
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+// Handle preflight OPTIONS requests
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: corsHeaders });
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check API key
     if (!process.env.RoseDatingANthropic_API_KEY) {
       console.error('API key not found in environment variables');
-      return Response.json({ error: 'API configuration error: Missing API key' }, { status: 500 });
+      return Response.json({ error: 'API configuration error: Missing API key' }, { status: 500, headers: corsHeaders });
     }
 
     const body = await request.json();
     const { message, conversationHistory = [], images = [] } = body;
 
     if (!message && images.length === 0) {
-      return Response.json({ error: 'Message or images required' }, { status: 400 });
+      return Response.json({ error: 'Message or images required' }, { status: 400, headers: corsHeaders });
     }
 
     // Build content array
@@ -43,12 +55,11 @@ export async function POST(request: NextRequest) {
 
     // Add images if provided (with size validation)
     for (const img of images) {
-      // Check image size (base64 is ~4/3 the size of original, so 5MB limit = ~3.75MB base64)
       const imageSizeMB = (img.data.length * 0.75) / (1024 * 1024);
       if (imageSizeMB > 5) {
         return Response.json(
           { error: `Image too large (${imageSizeMB.toFixed(1)}MB). Maximum size is 5MB per image.` },
-          { status: 400 }
+          { status: 400, headers: corsHeaders }
         );
       }
 
@@ -62,24 +73,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Add text message - ensure there's always text when images are present
+    // Add text message
     const messageText = message || (images.length > 0 ? 'Please analyze these images.' : '');
     if (messageText) {
       content.push({ type: 'text', text: messageText });
     }
 
-    // Filter out any messages with empty content from conversation history
-    // Ensure all content is strings (not arrays or objects)
+    // Filter conversation history
     const validHistory = conversationHistory.filter(
       (msg: { role: string; content: any }) => {
         if (!msg.content) return false;
         if (typeof msg.content === 'string') return msg.content.trim().length > 0;
-        // If content is an array or object, convert to string or skip
         return false;
       }
     );
 
-    // Build messages array with proper typing
+    // Build messages array
     const messages: Anthropic.MessageParam[] = [
       ...validHistory.map((msg: { role: string; content: string }) => ({
         role: msg.role as 'user' | 'assistant',
@@ -88,7 +97,6 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content },
     ];
 
-    // Log request details for debugging
     console.log('API Request:', {
       imageCount: images.length,
       messageLength: messageText?.length,
@@ -98,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000, // Increased for multiple image analysis
+      max_tokens: 3000,
       system: CHAT_SYSTEM_PROMPT,
       messages,
     });
@@ -112,12 +120,11 @@ export async function POST(request: NextRequest) {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
       },
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('Chat error:', error);
 
-    // Provide detailed error information
     let errorMessage = 'Chat failed';
     if (error instanceof Error) {
       errorMessage = error.message;
@@ -127,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json(
       { error: errorMessage },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
