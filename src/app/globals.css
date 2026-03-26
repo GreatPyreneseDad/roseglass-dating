@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0a1f1a;
-  --foreground: #e8f4f1;
-  --forest-dark: #0d2b22;
-  --forest-mid: #1a4d3e;
-  --forest-light: #2d6b5a;
-  --water-dark: #1a3d5c;
-  --water-mid: #2e5f7f;
-  --water-light: #4a8cb5;
-  --accent: #5fa88d;
-}
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --warm-bg: #faf8f5;
+  --rose: #c4736e;
+  --rose-soft: #d4928e;
+  --sage: #7a9181;
+  --text-primary: #2c2420;
+  --text-secondary: #6b5e54;
+  --text-muted: #9b8e82;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--warm-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: 'Newsreader', Georgia, serif;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(44, 36, 32, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(44, 36, 32, 0.2);
+}
+
+/* Markdown in chat */
+.prose-chat p {
+  margin-bottom: 0.5rem;
+}
+
+.prose-chat p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-chat strong {
+  font-weight: 600;
+}
+
+.prose-chat em {
+  color: var(--text-secondary);
 }
