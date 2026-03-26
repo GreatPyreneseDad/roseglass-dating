@@ -391,7 +391,7 @@ export default function HomePage() {
 
             <p className="text-center text-[11px] text-[#9b8e82] mt-3">
               Nothing stored. Not training data.{' '}
-              <a href="https://roseglass.app" target="_blank" className="text-[#c4736e] hover:underline">
+              <a href="https://roseglass.dev" target="_blank" className="text-[#c4736e] hover:underline">
                 Rose Glass
               </a>{' '}
               by ROSE Corp. · Jackson Hole, WY
@@ -477,7 +477,7 @@ export default function HomePage() {
                   ))}
                 </div>
                 <a
-                  href="mailto:chris@macgregorholding.com?subject=Rose%20Glass%20Licensing"
+                  href="mailto:office@roseglass.dev?subject=Rose%20Glass%20Licensing"
                   className="inline-block bg-[#2c2420] text-[#faf8f5] px-7 py-3.5 rounded-full text-[15px] font-medium hover:bg-[#a85a55] transition-all"
                 >
                   Talk to us about integration
@@ -512,12 +512,12 @@ export default function HomePage() {
             <p className="text-[13px] text-[#9b8e82]">
               Coherence is constructed, not discovered.
               <br />
-              <a href="mailto:chris@macgregorholding.com" className="text-[#c4736e] hover:underline">
-                chris@macgregorholding.com
+              <a href="mailto:office@roseglass.dev" className="text-[#c4736e] hover:underline">
+                office@roseglass.dev
               </a>{' '}
               ·{' '}
-              <a href="https://roseglass.app" className="text-[#c4736e] hover:underline">
-                roseglass.app
+              <a href="https://roseglass.dev" className="text-[#c4736e] hover:underline">
+                roseglass.dev
               </a>
             </p>
           </footer>
