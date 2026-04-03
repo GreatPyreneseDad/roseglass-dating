@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { ROSE_GLASS_DATING_SYSTEM_PROMPT } from '@/lib/rose-glass-dating';
 
+// Vercel function config — allow up to 60s for multi-image analysis
+export const maxDuration = 60;
+
 const anthropic = new Anthropic({
   apiKey: process.env.RoseDatingANthropic_API_KEY,
 });

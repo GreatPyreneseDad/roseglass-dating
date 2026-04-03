@@ -49,15 +49,28 @@ export default function HomePage() {
     setImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const fileToBase64 = (file: File): Promise<string> =>
+  // Resize images before upload to prevent timeout on multiple screenshots
+  const resizeAndBase64 = (file: File, maxDim = 1200): Promise<{ data: string; mediaType: string }> =>
     new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]);
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('No canvas context')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        resolve({ data: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
     });
 
   const sendMessage = async () => {
@@ -79,10 +92,7 @@ export default function HomePage() {
 
     try {
       const imagePayloads = await Promise.all(
-        (userMessage.images || []).map(async (img) => ({
-          data: await fileToBase64(img.file),
-          mediaType: img.file.type,
-        }))
+        (userMessage.images || []).map((img) => resizeAndBase64(img.file))
       );
 
       const conversationHistory = messages
