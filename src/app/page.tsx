@@ -508,9 +508,14 @@ export default function HomePage() {
                   <p className="text-[14px] text-[#6b5e54] leading-[1.6] mb-3">
                     Use Rose Glass inside Tinder, Hinge, and Bumble on desktop. Translations right where you&apos;re having conversations.
                   </p>
-                  <span className="inline-flex items-center gap-1.5 bg-[rgba(122,145,129,0.1)] text-[#7a9181] text-[12px] font-medium px-3.5 py-1.5 rounded-full">
-                    Coming soon
-                  </span>
+                  <a
+                    href="https://chromewebstore.google.com/detail/rose-glass-dating-translation/adiccnijglhnfohfnekcliokmlcbkldg"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-[#c4736e] hover:bg-[#b3645f] text-white text-[12px] font-medium px-3.5 py-1.5 rounded-full transition-colors"
+                  >
+                    Add to Chrome
+                  </a>
                 </div>
               </div>
             </div>
